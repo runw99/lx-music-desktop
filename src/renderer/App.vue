@@ -1,5 +1,5 @@
 <template lang="pug">
-#container(v-if="isProd && !isLinux" :class="theme" @mouseenter="enableIgnoreMouseEvents" @mouseleave="dieableIgnoreMouseEvents")
+#container(v-if="isProd && !isNt" :class="theme" @mouseenter="enableIgnoreMouseEvents" @mouseleave="dieableIgnoreMouseEvents")
   core-aside#left
   #right
     core-toolbar#toolbar
@@ -20,7 +20,7 @@
 <script>
 import dnscache from 'dnscache'
 import { mapMutations, mapGetters, mapActions } from 'vuex'
-import { rendererOn, rendererSend } from '../common/ipc'
+import { rendererOn, rendererSend, rendererInvoke } from '../common/ipc'
 import { isLinux } from '../common/utils'
 import music from './utils/music'
 import { throttle, openUrl } from './utils'
@@ -35,16 +35,19 @@ export default {
   data() {
     return {
       isProd: process.env.NODE_ENV === 'production',
-      isLinux,
+      isNt: false,
       globalObj: {
         apiSource: 'test',
         proxy: {},
       },
       updateTimeout: null,
+      envParams: {
+        nt: false,
+      },
     }
   },
   computed: {
-    ...mapGetters(['electronStore', 'setting', 'theme', 'version']),
+    ...mapGetters(['setting', 'theme', 'version']),
     ...mapGetters('list', ['defaultList', 'loveList']),
     ...mapGetters('download', {
       downloadList: 'list',
@@ -53,20 +56,20 @@ export default {
   },
   created() {
     this.saveSetting = throttle(n => {
-      this.electronStore.set('setting', n)
+      window.electronStore_config.set('setting', n)
     })
     this.saveDefaultList = throttle(n => {
-      this.electronStore.set('list.defaultList', n)
+      window.electronStore_list.set('defaultList', n)
     }, 500)
     this.saveLoveList = throttle(n => {
-      this.electronStore.set('list.loveList', n)
+      window.electronStore_list.set('loveList', n)
     }, 500)
     this.saveDownloadList = throttle(n => {
-      this.electronStore.set('download.list', n)
+      window.electronStore_list.set('downloadList', n)
     }, 1000)
   },
   mounted() {
-    document.body.classList.add(this.isLinux ? 'noTransparent' : 'transparent')
+    document.body.classList.add(this.isNt ? 'noTransparent' : 'transparent')
     this.init()
   },
   watch: {
@@ -109,11 +112,19 @@ export default {
     ...mapMutations('download', ['updateDownloadList']),
     ...mapMutations(['setSetting']),
     init() {
+      rendererInvoke('getEnvParams').then(envParams => {
+        this.envParams = envParams
+        this.isNt = isLinux || this.envParams.nt
+        if (this.isNt) {
+          document.body.classList.remove('transparent')
+          document.body.classList.add('noTransparent')
+        }
+        if (this.isProd && !this.isNt) {
+          document.body.addEventListener('mouseenter', this.dieableIgnoreMouseEvents)
+          document.body.addEventListener('mouseleave', this.enableIgnoreMouseEvents)
+        }
+      })
       document.body.addEventListener('click', this.handleBodyClick, true)
-      if (this.isProd && !isLinux) {
-        document.body.addEventListener('mouseenter', this.dieableIgnoreMouseEvents)
-        document.body.addEventListener('mouseleave', this.enableIgnoreMouseEvents)
-      }
       rendererOn('update-available', (e, info) => {
         // this.showUpdateModal(true)
         // console.log(info)
@@ -173,12 +184,12 @@ export default {
       music.init()
     },
     enableIgnoreMouseEvents() {
-      if (isLinux) return
+      if (!this.isNt) return
       rendererSend('setIgnoreMouseEvents', false)
       // console.log('content enable')
     },
     dieableIgnoreMouseEvents() {
-      if (isLinux) return
+      if (!this.isNt) return
       // console.log('content disable')
       rendererSend('setIgnoreMouseEvents', true)
     },
@@ -188,12 +199,12 @@ export default {
       this.initDownloadList() // 初始化下载列表
     },
     initPlayList() {
-      let defaultList = this.electronStore.get('list.defaultList')
-      let loveList = this.electronStore.get('list.loveList')
+      let defaultList = window.electronStore_list.get('defaultList')
+      let loveList = window.electronStore_list.get('loveList')
       this.initList({ defaultList, loveList })
     },
     initDownloadList() {
-      let downloadList = this.electronStore.get('download.list')
+      let downloadList = window.electronStore_list.get('downloadList')
       if (downloadList) {
         downloadList.forEach(item => {
           if (item.status == this.downloadStatus.RUN || item.status == this.downloadStatus.WAITING) {
@@ -209,6 +220,7 @@ export default {
         this.setNewVersion(body)
         return body
       })).catch(() => {
+        if (this.version.newVersion) return this.version.newVersion
         this.setVersionModalVisible({ isUnknow: true })
         let result = {
           version: '0.0.0',
@@ -217,7 +229,7 @@ export default {
         this.setNewVersion(result)
         return result
       }).then(result => {
-        if (result.version === this.version.version) return
+        if (result.version === this.version.version || result.version === this.setting.ignoreVersion) return
         // console.log(this.version)
         this.$nextTick(() => {
           this.setVersionModalVisible({ isShow: true })

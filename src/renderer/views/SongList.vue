@@ -96,7 +96,8 @@ export default {
       return this.setting.apiSource == 'temp'
     },
     tagList() {
-      return this.tags[this.source] ? this.tags[this.source].tags : []
+      let tagInfo = this.tags[this.source]
+      return tagInfo ? [{ name: '热门标签', list: [...tagInfo.hotTag] }, ...tagInfo.tags] : []
     },
   },
   watch: {
@@ -183,10 +184,11 @@ export default {
       let targetSong
       if (index == null) {
         targetSong = this.selectdData[0]
-        this.listAddMultiple({ id: 'default', list: this.selectdData })
+        this.listAddMultiple({ id: 'default', list: this.filterList(this.selectdData) })
         this.resetSelect()
       } else {
         targetSong = this.listDetail.list[index]
+        if (this.isAPITemp && targetSong.source != 'kw') return
         this.listAdd({ id: 'default', musicInfo: targetSong })
       }
       let targetIndex = this.defaultList.list.findIndex(
@@ -234,7 +236,7 @@ export default {
         case 'wy':
           type = '128k'
       }
-      this.createDownloadMultiple({ list: [...this.selectdData], type })
+      this.createDownloadMultiple({ list: this.filterList(this.selectdData), type })
       this.resetSelect()
       this.isShowDownloadMultiple = false
     },
@@ -344,6 +346,9 @@ export default {
           return
       }
       this.importSongListText = text.replace(regx, '$1')
+    },
+    filterList(list) {
+      return this.setting.apiSource == 'temp' ? list.filter(s => s.source == 'kw') : [...list]
     },
     /*     addSongListDetail() {
       // this.detailLoading = true
@@ -514,7 +519,7 @@ export default {
     line-height: 1.2;
     // text-indent: 24px;
 
-    color: #888;
+    color: @color-theme_2-font-label;
   }
 }
 .pagination {
@@ -523,4 +528,19 @@ export default {
   // left: 50%;
   // transform: translateX(-50%);
 }
+
+each(@themes, {
+  :global(#container.@{value}) {
+    .song-list-header-middle {
+      p {
+        color: ~'@{color-@{value}-theme_2-font-label}';
+      }
+    }
+    .right {
+      p {
+        color: ~'@{color-@{value}-theme_2-font-label}';
+      }
+    }
+  }
+})
 </style>

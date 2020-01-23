@@ -13,7 +13,7 @@
 
 <script>
 import { rendererSend } from 'common/ipc'
-import { mapGetters } from 'vuex'
+import { mapGetters, mapMutations } from 'vuex'
 import music from '../../utils/music'
 import { debounce } from '../../utils'
 export default {
@@ -34,15 +34,21 @@ export default {
     source() {
       return this.setting.search.tempSearchSource
     },
-    isAutoClearInput() {
+    isAutoClearSearchInput() {
       return this.setting.odc.isAutoClearSearchInput
+    },
+    isAutoClearSearchList() {
+      return this.setting.odc.isAutoClearSearchList
     },
   },
   watch: {
     route(n) {
-      if (this.isAutoClearInput && n.name != 'search' && this.searchText) this.searchText = ''
+      if (n.name != 'search') {
+        if (this.isAutoClearSearchInput && this.searchText) this.searchText = ''
+        if (this.isAutoClearSearchList) this.clearSearchList()
+      }
     },
-    'storeSearchText'(n) {
+    storeSearchText(n) {
       if (n !== this.searchText) this.searchText = n
     },
     searchText(n) {
@@ -62,6 +68,9 @@ export default {
     }, 50)
   },
   methods: {
+    ...mapMutations('search', {
+      clearSearchList: 'clearList',
+    }),
     handleEvent({ action, data }) {
       switch (action) {
         case 'focus':
@@ -127,7 +136,7 @@ export default {
   align-items: center;
   padding-left: 15px;
   -webkit-app-region: drag;
-  z-index: 1;
+  z-index: 2;
   position: relative;
 }
 .input {
@@ -199,14 +208,14 @@ export default {
     }
 
     &.min:hover:after {
-      background-color: lighten(@color-minBtn, 10%);
+      background-color: @color-minBtn-hover;
       opacity: 1;
     }
     &.max:hover:after {
-      background-color: lighten(@color-maxBtn, 10%);
+      background-color: @color-maxBtn-hover;
     }
     &.close:hover:after {
-      background-color: lighten(@color-closeBtn, 10%);
+      background-color: @color-closeBtn-hover;
     }
   }
 }
@@ -231,4 +240,31 @@ export default {
     color: #fff;
   }
 }
+
+each(@themes, {
+  :global(#container.@{value}) {
+    .control {
+      button {
+        &.min:after {
+          background-color: ~'@{color-@{value}-minBtn}';
+        }
+        &.max:after {
+          background-color: ~'@{color-@{value}-maxBtn}';
+        }
+        &.close:after {
+          background-color: ~'@{color-@{value}-closeBtn}';
+        }
+        &.min:hover:after {
+          background-color: ~'@{color-@{value}-minBtn-hover}';
+        }
+        &.max:hover:after {
+          background-color: ~'@{color-@{value}-maxBtn-hover}';
+        }
+        &.close:hover:after {
+          background-color: ~'@{color-@{value}-closeBtn-hover}';
+        }
+      }
+    }
+  }
+})
 </style>

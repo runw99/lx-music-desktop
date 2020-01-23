@@ -25,7 +25,7 @@ table {
   border-spacing: 0;
   border-collapse: collapse;
   overflow: hidden;
-  color: rgba(0, 0, 0, 0.87);
+  color: rgba(0, 0, 0, 0.95);
   th {
     font-size: 12px;
     text-align: left;
@@ -95,6 +95,14 @@ a {
     color: #fff;
     background-color: #32bc63;
   }
+  &.badge-theme-success {
+    color: @color-badge-success-font;
+    background-color: @color-badge-success;
+  }
+  &.badge-theme-info {
+    color: @color-badge-info-font;
+    background-color: @color-badge-info;
+  }
 }
 
 small {
@@ -114,6 +122,12 @@ strong {
 svg {
   transition: @transition-theme;
   transition-property: fill;
+}
+
+input, textarea {
+  &::placeholder {
+    color: @color-theme_2-font-label;
+  }
 }
 
 .hover, a {
@@ -184,6 +198,23 @@ each(@themes, {
             background-color: ~'@{color-@{value}-theme_2-hover}';
           }
         }
+      }
+    }
+
+    input, textarea {
+      &::placeholder {
+        color: ~'@{color-@{value}-theme_2-font-label}';
+      }
+    }
+    
+    .badge {
+      &.badge-theme-success {
+        color: ~'@{color-@{value}-badge-success-font}';
+        background-color: ~'@{color-@{value}-badge-success}';
+      }
+      &.badge-theme-info {
+        color: ~'@{color-@{value}-badge-info-font}';
+        background-color: ~'@{color-@{value}-badge-info}';
       }
     }
   }

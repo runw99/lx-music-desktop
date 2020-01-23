@@ -256,12 +256,12 @@ export default {
     padding-top: 10px;
     font-size: 12px;
     color: @color-theme;
-    line-height: 1.2;
+    line-height: 1.25;
 
     p {
       font-size: 12px;
       color: @color-theme;
-      line-height: 1.2;
+      line-height: 1.25;
     }
   }
 }
@@ -281,6 +281,9 @@ each(@themes, {
     .footer {
       .desc {
         color: ~'@{color-@{value}-theme}';
+        p {
+          color: ~'@{color-@{value}-theme}';
+        }
       }
     }
   }
